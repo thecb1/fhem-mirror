@@ -54,7 +54,7 @@ SetExtensions($$@)
   }
   if($se_list{$cmd} && $se_list{$cmd} != int(@a)) {
     return "$cmd requires $se_list{$cmd} parameter";
-  }
+‚se  }
 
   my $cmd1 = ($cmd =~ m/^on.*/ ? "on" : "off");
   my $cmd2 = ($cmd =~ m/^on.*/ ? "off" : "on");
@@ -62,12 +62,41 @@ SetExtensions($$@)
 
   if($cmd eq "on-for-timer" || $cmd eq "off-for-timer") {
     RemoveInternalTimer("SE $name $cmd");
+    delete($hash->{SE_TIMERRUNNING});
     return "$cmd requires a number as argument" if($param !~ m/^\d*\.?\d*$/);
 
     if($param) {
+      $hash->{SE_TIMERRUNNING} = $cmd;
       DoSet($name, $cmd1);
       InternalTimer(gettimeofday()+$param,"SetExtensionsFn","SE $name $cmd",0);
     }
+
+  } elsif($cmd eq "on-for-timer-when-off") {
+    my $startTimer=1;
+    my $timercmd="on-for-timer";
+    if(!$hash->{SE_TIMERRUNNING}) {
+      my $actualState = ReadingsVal($name, "state", undef);
+      if($actualState eq $cmd1) {
+        $startTimer=0; # started Manually do not override by timer 
+      }
+    }
+    if($startTimer) {
+      RemoveInternalTimer("SE $name $timercmd");
+      delete($hash->{SE_TIMERRUNNING});
+      return "$cmd requires a number as argument" if($param !~ m/^\d*\.?\d*$/);
+
+      if($param) {
+        $hash->{SE_TIMERRUNNING} = $timercmd;
+        DoSet($name, $cmd1);
+        InternalTimer(gettimeofday()+$param,"SetExtensionsFn","SE $name $timercmd",0);
+      }
+    }
+
+  } elsif($cmd eq "on-stop-timer" ) {
+      my $timercmd="on-for-timer";
+      RemoveInternalTimer("SE $name  $timercmd");
+      delete($hash->{SE_TIMERRUNNING});
+      DoSet($name, $cmd1);
 
   } elsif($cmd =~ m/^(on|off)-till/) {
     my ($err, $hr, $min, $sec, $fn) = GetTimeSpec($param);
@@ -154,9 +183,11 @@ SetExtensionsFn($)
 
 
   if($cmd eq "on-for-timer") {
+    $defs{$name}{SE_TIMERRUNNING}="";
     DoSet($name, "off");
 
   } elsif($cmd eq "off-for-timer") {
+    $defs{$name}{SE_TIMERRUNNING}="";
     DoSet($name, "on");
 
   } elsif($cmd eq "blink" && $defs{$name}{SE_BLINKPARAM}) {

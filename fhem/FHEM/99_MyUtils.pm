@@ -279,8 +279,17 @@ sub RollCheck() {
     my $tempOut=ReadingsVal("wetter", "temp_c", 99);
 
     my $twil=Value("twil");
-    if($twil>=3 && $twil<10) { # civil
+    if ($twil>=3 && $twil<10) { # civil
 	$tag=1;
+        myfhem("set tag 1");
+    } else {
+	myfhem("set tag 0");
+    }
+    my $light=ReadingsVal("twil", "light", 0);
+    if ($light>=5) { # weather
+	myfhem("set hell 1");
+    } else {
+	myfhem("set hell 0");
     }
 
     my $wett=ReadingsVal("wetter", "code", 99);
@@ -343,7 +352,7 @@ sub RollCheck() {
             }
 	}
 
-        #Dbg("RollCheck:$r->{roll}-tempH:$tempH temp:$temp tempO:$tempOut so:$sonne wett:$wett sr:$sr twil:$twil tag:$tag fen:$fen skipR:$skipRunter skipH:$skipHoch st:$r->{state}");
+        Dbg("RollCheck:$r->{roll}-tempH:$tempH temp:$temp tempO:$tempOut so:$sonne wett:$wett sr:$sr twil:$twil tag:$tag fen:$fen skipR:$skipRunter skipH:$skipHoch st:$r->{state}");
 
 	if( $tag and $sonne and $tempH) {
             if($r->{state}!=STATE_SCHLITZ) {
